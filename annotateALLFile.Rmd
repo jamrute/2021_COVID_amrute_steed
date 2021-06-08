@@ -1,0 +1,85 @@
+```{r}
+library(dplyr)
+library(Seurat)
+library(patchwork)
+```
+
+```{r}
+sample_dir <- "/Volumes/klavine/Active/Junedh/COVID_PBMC/htcf.wustl.edu/files/aejPBNMv/Steed_MGI0369_1_10X/ALL/outs/filtered_feature_bc_matrix/"
+sample.data <- Read10X(data.dir =sample_dir)
+sample <- CreateSeuratObject(counts = sample.data, min.cells = 3, min.features = 200)
+```
+
+```{r}
+sample$ID <- sub('.*-', '', colnames(sample))
+```
+
+```{r}
+fun1 <- function(x) {
+  if (x %in% c("25", "26", "27", "28", "29", "30")) {"Control"} 
+  else if (x %in% c("15", "23", "5", "7", "9", "11")) {"Dead_D0"}
+  else if (x %in% c("16", "24", "6", "8", "10", "12")) {"Dead_D7"}
+  else if (x %in% c("17", "19", "21", "1", "3", "13")) {"Alive_D0"}
+  else if (x %in% c("18", "20", "22", "2", "4", "14")) {"Alive_D7"}
+}
+
+fun2 <- function(x) {
+  if (x == "25") {"C1"} 
+  else if (x == "26") {"C2"}
+  else if (x == "27") {"C4"}
+  else if (x == "28") {"C6"}
+  else if (x == "29") {"C7"}
+  else if (x == "30") {"C8"}
+  
+  else if (x == "15") {"Dead_D0_62"} 
+  else if (x == "23") {"Dead_D0_85"}
+  else if (x == "5") {"Dead_D0_163"}
+  else if (x == "7") {"Dead_D0_251"}
+  else if (x == "9") {"Dead_D0_272"}
+  else if (x == "11") {"Dead_D0_276"}
+  
+  else if (x == "16") {"Dead_D7_62"} 
+  else if (x == "24") {"Dead_D7_85"}
+  else if (x == "6") {"Dead_D7_163"}
+  else if (x == "8") {"Dead_D7_251"}
+  else if (x == "10") {"Dead_D7_272"}
+  else if (x == "12") {"Dead_D7_276"}
+  
+  else if (x == "17") {"Alive_D0_72"} 
+  else if (x == "19") {"Alive_D0_79"}
+  else if (x == "21") {"Alive_D0_80"}
+  else if (x == "1") {"Alive_D0_145"}
+  else if (x == "3") {"Alive_D0_154"}
+  else if (x == "13") {"Alive_D0_283"}  
+
+  else if (x == "18") {"Alive_D7_72"} 
+  else if (x == "20") {"Alive_D7_79"}
+  else if (x == "22") {"Alive_D7_80"}
+  else if (x == "2") {"Alive_D7_145"}
+  else if (x == "4") {"Alive_D7_154"}
+  else if (x == "14") {"Alive_D7_283"}
+  
+}
+```
+
+```{r}
+sample@meta.data$condition <- mapply(fun1, sample@meta.data$ID)
+sample@meta.data$sampleID <- mapply(fun2, sample@meta.data$ID)
+```
+
+```{r}
+sample@meta.data$diseaseStatus <- ifelse(sample@meta.data$condition == 'Control', 'Donor', 'COVID')
+```
+
+```{r}
+saveRDS(sample, '/Volumes/klavine/Active/Junedh/COVID_PBMC/merged_annotated_raw.rds')
+```
+
+
+
+
+
+
+
+
+

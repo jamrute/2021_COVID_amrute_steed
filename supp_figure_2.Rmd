@@ -1,0 +1,36 @@
+```{r}
+library(Seurat)
+library(ggplot2)
+library(patchwork)
+library(ggpubr)
+library(Nebulosa)
+```
+
+```{r}
+sample <- readRDS('/Users/jamrute/Documents/Graduate_School/Thesis_Lab/Lavine_Projects/Primary/COVID19_PBMC/azimuth/ref_query/cleaned_withPlatelets_query.rds')
+```
+
+```{r}
+VlnPlot(sample, features = c("nFeature_RNA")) + NoLegend()
+VlnPlot(sample, features = c("nCount_RNA")) + NoLegend()
+VlnPlot(sample, features = c("percent.mt")) + NoLegend()
+```
+
+```{r}
+plot_density(sample, features = c("nCount_RNA"))
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,95 @@
+```{r}
+library(Seurat)
+library(ggplot2)
+library(patchwork)
+library(ggpubr)
+library(dplyr)
+library(Seurat)
+library(patchwork)
+library(sctransform)
+library(ggplot2)
+library(pheatmap)
+library(Seurat)
+library(ggplot2)
+library(Matrix)
+library(RColorBrewer)
+library(dplyr)
+library(scales)
+library(data.table)
+library(stats)
+library("Nebulosa")
+```
+
+```{r}
+sample <- readRDS('/Users/jamrute/Documents/Graduate_School/Thesis_Lab/Lavine_Projects/Primary/COVID19_PBMC/azimuth/ref_query/cleaned_withPlatelets_query.rds')
+```
+
+#### FIGURE 1
+
+```{r}
+DimPlot(sample, group.by = "predicted.celltype.l2", label = TRUE, label.size = 3 ,repel = TRUE) + NoLegend()
+```
+
+```{r}
+DimPlot(sample, group.by = "predicted.celltype.l2", label = FALSE) + NoLegend()
+```
+
+
+```{r}
+sample$diseaseStatus <- factor(sample$diseaseStatus, levels = c("Donor", "COVID"), ordered = TRUE)
+DimPlot(sample, group.by = "predicted.celltype.l2", split.by = "diseaseStatus", label = FALSE, label.size = 3 ,repel = TRUE, ncol=1) + NoLegend()
+```
+
+```{r}
+sample$condition <- factor(sample$condition, levels = c("Control", "Alive_D0", "Alive_D7", "Dead_D0", "Dead_D7"), ordered = TRUE)
+DimPlot(sample, group.by = "predicted.celltype.l2", split.by = "condition", label = FALSE, label.size = 3 ,repel = TRUE) + NoLegend()
+```
+
+```{r}
+sample$predicted.celltype.l2 <- factor(sample$predicted.celltype.l2, levels = rev(c("HSPC", "ASDC", "pDC", "CD14 Mono", "CD16 Mono", "cDC1", "cDC2", "ILC", "NK", "NK Proliferating", "NK_CD56bright", "CD4 Naive", "CD8 Naive", "CD4 Proliferating", "CD8 Proliferating", "CD4 TEM", "CD8 TEM", "CD4 TCM", "CD8 TCM", "CD4 CTL", "dnT", "gdT", "MAIT", "Treg", "B naive", "B intermediate", "B memory", "Plasmablast", "Platelet")), ordered = TRUE)
+```
+
+# GEX Violin + Heatmap
+```{r}
+Idents(sample) <- "predicted.celltype.l2"
+DefaultAssay(sample) <- 'SCT'
+VlnPlot(sample, features = c("SOX4", "LILRA4", "PTGDS", "S100A8", "LST1", "CLEC9A", "HLA-DPB1", "KIT", "GNLY", "STMN1", "CTSW", "TCF7", "LINC02446", "TUBA1B", "TYMS", "GZMK", "CCL5", "IL7R", "CD8B", "GZMH", "FXYD2", "TRDV2", "KLRB1", "FOXP3", "TCL1A", "MS4A1", "CD74", "JCHAIN", "ITGA2B"), stack=TRUE) + NoLegend() + RotatedAxis()
+```
+
+```{r}
+Idents(sample) <- "predicted.celltype.l2"
+sample.averageexpression <- AverageExpression(sample, features = c("SOX4", "LILRA4", "PTGDS", "S100A8", "LST1", "CLEC9A", "HLA-DPB1", "KIT", "GNLY", "STMN1", "CTSW", "TCF7", "LINC02446", "TUBA1B", "TYMS", "GZMK", "CCL5", "IL7R", "CD8B", "GZMH", "FXYD2", "TRDV2", "KLRB1", "FOXP3", "TCL1A", "MS4A1", "CD74", "JCHAIN", "ITGA2B"), assays = "SCT")
+sample.averageexpression <- as.matrix(sample.averageexpression)
+```
+
+```{r}
+pheatmap(sample.averageexpression[[1]], scale="row", col=rev(brewer.pal(11, "RdBu")), cexCol=0.5, cellwidth=10, cluster_rows=FALSE, fontsize_row=6, fontsize_col=6, cluster_cols = FALSE, legend = TRUE) 
+```
+
+# Prediction Scores
+```{r}
+sample.averageexpression <- AverageExpression(sample, features = c("HSPC", "ASDC", "pDC", "CD14 Mono", "CD16 Mono", "cDC1", "cDC2", "ILC", "NK", "NK Proliferating", "NK-CD56bright", "CD4 Naive", "CD8 Naive", "CD4 Proliferating", "CD8 Proliferating", "CD4 TEM", "CD8 TEM", "CD4 TCM", "CD8 TCM", "CD4 CTL", "dnT", "gdT", "MAIT", "Treg", "B naive", "B intermediate", "B memory", "Plasmablast", "Platelet"), assays = "prediction.score.celltype.l2")
+sample.averageexpression <- as.matrix(sample.averageexpression)
+
+pheatmap(sample.averageexpression[[1]], scale="none", col=viridis(240), cexCol=0.5, cellwidth=10, cluster_rows=FALSE, fontsize_row=6, fontsize_col=6, cluster_cols = FALSE, legend = TRUE)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

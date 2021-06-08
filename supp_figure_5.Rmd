@@ -1,0 +1,93 @@
+```{r}
+library(Seurat)
+library(ggplot2)
+library(patchwork)
+library(ggpubr)
+```
+
+```{r}
+sample <- readRDS('/Users/jamrute/Documents/Graduate_School/Thesis_Lab/Lavine_Projects/Primary/COVID19_PBMC/azimuth/ref_query/cleaned_withPlatelets_query.rds')
+```
+
+```{r}
+DimPlot(sample, group.by = "predicted.celltype.l1", label = TRUE, label.size = 3 ,repel = TRUE, reduction = "umap") + NoLegend()
+DimPlot(sample, group.by = "predicted.celltype.l2", label = TRUE, label.size = 3 ,repel = TRUE, reduction = "umap") + NoLegend()
+DimPlot(sample, group.by = "condition", label = FALSE, label.size = 3 ,repel = TRUE, reduction = "umap") 
+DimPlot(sample, group.by = "diseaseStatus", label = FALSE, label.size = 3 ,repel = TRUE, reduction = "umap") 
+DimPlot(sample, group.by = "sampleID", label = FALSE, label.size = 3 ,repel = TRUE, reduction = "umap")
+```
+
+### Look at fraction of cells 
+```{r}
+sample$seurat_clusters <- sample$predicted.celltype.l2
+sample$orig.ident <- sample$sampleID
+fq <- prop.table(table(Idents(sample), sample$orig.ident), margin = 2) * 100
+df <- reshape2::melt(fq, value.name = "freq", varnames = c("seurat_clusters", 
+                                                               "orig.ident"))
+```
+
+```{r}
+fun <- function(x) {
+  if (x == "C1") {"Control"} 
+  else if (x == "C2") {"Control"}
+  else if (x == "C4") {"Control"}
+  else if (x == "C6") {"Control"}
+  else if (x == "C7") {"Control"}
+  else if (x == "C8") {"Control"}
+  
+  else if (x == "Dead_D0_62") {"Dead_D0"} 
+  else if (x == "Dead_D0_85") {"Dead_D0"}
+  else if (x == "Dead_D0_163") {"Dead_D0"}
+  else if (x == "Dead_D0_251") {"Dead_D0"}
+  else if (x == "Dead_D0_272") {"Dead_D0"}
+  else if (x == "Dead_D0_276") {"Dead_D0"}
+  
+  else if (x == "Dead_D7_62") {"Dead_D7"} 
+  else if (x == "Dead_D7_85") {"Dead_D7"}
+  else if (x == "Dead_D7_163") {"Dead_D7"}
+  else if (x == "Dead_D7_251") {"Dead_D7"}
+  else if (x == "Dead_D7_272") {"Dead_D7"}
+  else if (x == "Dead_D7_276") {"Dead_D7"}
+  
+  else if (x == "Alive_D0_72") {"Alive_D0"} 
+  else if (x == "Alive_D0_79") {"Alive_D0"}
+  else if (x == "Alive_D0_80") {"Alive_D0"}
+  else if (x == "Alive_D0_145") {"Alive_D0"}
+  else if (x == "Alive_D0_154") {"Alive_D0"}
+  else if (x == "Alive_D0_283") {"Alive_D0"}  
+
+  else if (x == "Alive_D7_72") {"Alive_D7"} 
+  else if (x == "Alive_D7_79") {"Alive_D7"}
+  else if (x == "Alive_D7_80") {"Alive_D7"}
+  else if (x == "Alive_D7_145") {"Alive_D7"}
+  else if (x == "Alive_D7_154") {"Alive_D7"}
+  else if (x == "Alive_D7_283") {"Alive_D7"}
+  
+}
+```
+
+```{r}
+df$condition <- mapply(fun, df$orig.ident)
+```
+
+```{r}
+compare_means(freq ~ condition, data = df, group.by = "seurat_clusters")
+```
+
+```{r}
+df$seurat_clusters <- factor(df$seurat_clusters, levels = c("HSPC", "ASDC", "pDC", "CD14 Mono", "CD16 Mono", "cDC1", "cDC2", "ILC", "NK", "NK Proliferating", "NK_CD56bright", "CD4 Naive", "CD8 Naive", "CD4 Proliferating", "CD8 Proliferating", "CD4 TEM", "CD8 TEM", "CD4 TCM", "CD8 TCM", "CD4 CTL", "dnT", "gdT", "MAIT", "Treg", "B naive", "B intermediate", "B memory", "Plasmablast", "Platelet"), ordered = TRUE)
+
+ggplot(df, aes(x=seurat_clusters, y=freq, fill=condition)) + geom_boxplot(position=position_dodge(1.25)) + scale_fill_brewer(palette = "Blues") + facet_wrap(~seurat_clusters, scale="free", ncol=6) + theme_bw() + theme_linedraw() + theme(strip.background = element_blank()) + scale_y_continuous(labels = scales::number_format(accuracy = 0.01,decimal.mark = '.'))
+```
+
+
+
+
+
+
+
+
+
+
+
+

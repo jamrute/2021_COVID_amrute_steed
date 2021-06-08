@@ -1,0 +1,44 @@
+```{r}
+library(Seurat)
+library(ggplot2)
+library(patchwork)
+library(ggpubr)
+```
+
+```{r}
+sample <- readRDS('/Volumes/klavine/Active/Junedh/COVID_PBMC/azimuth/mapped/merged_azimuth_mapped.rds')
+```
+
+
+```{r}
+DimPlot(sample, group.by = "predicted.celltype.l1", label = TRUE, label.size = 3 ,repel = TRUE, reduction = "ref.umap") + NoLegend()
+DimPlot(sample, group.by = "predicted.celltype.l2", label = TRUE, label.size = 3 ,repel = TRUE, reduction = "ref.umap") + NoLegend()
+DimPlot(sample, group.by = "condition", label = FALSE, label.size = 3 ,repel = TRUE, reduction = "ref.umap") 
+DimPlot(sample, group.by = "diseaseStatus", label = FALSE, label.size = 3 ,repel = TRUE, reduction = "ref.umap") 
+DimPlot(sample, group.by = "sampleID", label = FALSE, label.size = 3 ,repel = TRUE, reduction = "ref.umap")
+```
+
+```{r}
+Idents(sample) <- "predicted.celltype.l2"
+levels(sample)
+```
+
+```{r}
+DefaultAssay(sample) <- "prediction.score.celltype.l2"
+FeaturePlot(sample, features = levels(sample),  reduction = "ref.umap", cols = c("lightgrey", "darkred"), ncol = 4) & theme(plot.title = element_text(size = 10))
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

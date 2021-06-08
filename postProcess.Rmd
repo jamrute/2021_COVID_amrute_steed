@@ -1,0 +1,104 @@
+```{r}
+library(Seurat)
+#library(SeuratDisk)
+library(ggplot2)
+library(patchwork)
+```
+
+# Explore the mapping + ref_query results
+```{r}
+sample <- readRDS('/Volumes/klavine/Active/Junedh/COVID_PBMC/azimuth/ref_query/refquery.rds')
+```
+
+```{r}
+Idents(sample) <- 'id'
+sample_query <- subset(sample, idents=c("query"))
+sample_ref <- subset(sample, idents=c("reference"))
+```
+
+```{r}
+DimPlot(sample_query, group.by = "id", label.size = 3, repel = TRUE)
+DimPlot(sample_ref, group.by = "id", label.size = 3, repel = TRUE)
+```
+
+```{r}
+DimPlot(sample_query, group.by = "predicted.celltype.l1", label = TRUE, label.size = 3, repel = TRUE)
+DimPlot(sample_query, group.by = "predicted.celltype.l2", label = TRUE, label.size = 3, repel = TRUE) + NoLegend()
+DimPlot(sample_ref, group.by = "celltype.l2", label = TRUE, label.size = 3, repel = TRUE) + NoLegend()
+```
+
+# Filter out the erythrocytes, doublets
+
+```{r}
+DimPlot(sample_query, group.by = "predicted.celltype.l2", label = TRUE, label.size = 3, repel = TRUE) + NoLegend()
+```
+
+```{r}
+Idents(object=sample_query) <- "predicted.celltype.l2"
+sample_subset <- subset(sample_query, idents = c("CD14 Mono", "CD16 Mono", "CD4 TCM", "CD8 TEM", "MAIT", "CD4 CTL", "NK", "NK Proliferating", "Treg", "CD4 Naive", "B naive", "CD4 TEM", "gdT", "B intermediate", "pDC", "B memory", "NK_CD56bright", "CD8 Naive", "HSPC", "Plasmablast", "CD8 TCM", "CD4 Proliferating", "cDC1", "dnT", "cDC2", "ILC", "CD8 Proliferating", "ASDC", "Platelet"))
+```
+
+```{r}
+DimPlot(sample_subset, group.by = "predicted.celltype.l1", label = TRUE, label.size = 3 ,repel = TRUE)
+DimPlot(sample_subset, group.by = "predicted.celltype.l2", label = TRUE, label.size = 3 ,repel = TRUE) + NoLegend()
+DimPlot(sample_subset, group.by = "sampleID", label.size = 3, repel = TRUE)
+DimPlot(sample_subset, group.by = "condition", label.size = 3, repel = TRUE)
+DimPlot(sample_subset, group.by = "diseaseStatus", label.size = 3, repel = TRUE)
+```
+
+```{r}
+write.csv(sample_subset@meta.data, file = "/Volumes/klavine/Active/Junedh/COVID_PBMC/azimuth/ref_query/cleaned_withPlatelets_query_meta.csv", quote = FALSE)
+saveRDS(sample_subset, file = "/Volumes/klavine/Active/Junedh/COVID_PBMC/azimuth/ref_query/cleaned_withPlatelets_query.rds")
+```
+
+### Look at the Mapping version of the UMAP
+
+```{r}
+sample_mapped <- readRDS('/Volumes/klavine/Active/Junedh/COVID_PBMC/azimuth/merged_azimuth_mapped.rds')
+```
+
+```{r}
+DimPlot(sample_mapped, reduction = "ref.umap", group.by = "predicted.celltype.l1", label = TRUE, label.size = 3 ,repel = TRUE)
+DimPlot(sample_mapped, reduction = "ref.umap", group.by = "predicted.celltype.l2", label = TRUE, label.size = 3 ,repel = TRUE) + NoLegend()
+DimPlot(sample_mapped, reduction = "ref.umap", group.by = "sampleID", label.size = 3, repel = TRUE)
+DimPlot(sample_mapped, reduction = "ref.umap", group.by = "condition", label.size = 3, repel = TRUE)
+DimPlot(sample_mapped, reduction = "ref.umap", group.by = "diseaseStatus", label.size = 3, repel = TRUE)
+```
+
+```{r}
+Idents(object=sample_mapped) <- "predicted.celltype.l2"
+sample_subset <- subset(sample_mapped, idents = c("CD14 Mono", "CD16 Mono", "CD4 TCM", "CD8 TEM", "MAIT", "CD4 CTL", "NK", "NK Proliferating", "Treg", "CD4 Naive", "B naive", "CD4 TEM", "gdT", "B intermediate", "pDC", "B memory", "NK_CD56bright", "CD8 Naive", "HSPC", "Plasmablast", "CD8 TCM", "CD4 Proliferating", "cDC1", "dnT", "cDC2", "ILC", "CD8 Proliferating", "ASDC"))
+```
+
+```{r}
+DimPlot(sample_subset, reduction = "ref.umap", group.by = "predicted.celltype.l1", label = TRUE, label.size = 3 ,repel = TRUE)
+DimPlot(sample_subset, reduction = "ref.umap", group.by = "predicted.celltype.l2", label = TRUE, label.size = 3 ,repel = TRUE) + NoLegend()
+DimPlot(sample_subset, reduction = "ref.umap", group.by = "sampleID", label.size = 3, repel = TRUE)
+DimPlot(sample_subset, reduction = "ref.umap", group.by = "condition", label.size = 3, repel = TRUE)
+DimPlot(sample_subset, reduction = "ref.umap", group.by = "diseaseStatus", label.size = 3, repel = TRUE)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

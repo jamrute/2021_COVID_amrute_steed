@@ -1,0 +1,278 @@
+```{r}
+library(Seurat)
+library(ggplot2)
+library(patchwork)
+library(ggpubr)
+library(dplyr)
+library(Seurat)
+library(patchwork)
+library(sctransform)
+library(ggplot2)
+library(pheatmap)
+library(Seurat)
+library(ggplot2)
+library(Matrix)
+library(RColorBrewer)
+library(dplyr)
+library(scales)
+library(data.table)
+library(stats)
+library("Nebulosa")
+```
+
+# Explore the mapping + ref_query results
+```{r}
+sample <- readRDS("../sample_normalized.rds")
+```
+
+# Plot heatmaps of the top Diff exp genes
+```{r}
+Idents(sample) <- "predicted.celltype.l2"
+currCell <- subset(sample, idents = c("CD4 TCM"))
+Idents(currCell) <- "condition"
+currCell_subset <- subset(currCell, idents = c("Control", "Alive_D0", "Dead_D0"))
+currCell_subset$condition <- factor(currCell_subset$condition, levels = c("Control", "Alive_D0", "Dead_D0"), ordered = TRUE)
+
+DGE <- read.csv2("/Users/jamrute/Documents/Graduate_School/Thesis_Lab/Lavine_Projects/Primary/COVID19_PBMC/azimuth/ref_query/single_cell_DGE/AliveD0_DeadD0/DE_CD4 TCM.csv", header=TRUE, sep=',', row.names = 1)
+
+DGE <- filter(DGE, as.numeric(DGE$p_val_adj) < 0.05 & as.numeric(DGE$avg_log2FC) > 0.5)
+
+genes <- grep("RPS", DGE$gene, invert=TRUE, value = TRUE)
+genes <- grep("RPL", genes, invert=TRUE, value = TRUE)
+
+DefaultAssay(currCell_subset) <- "SCT"
+currCell_subset.averageexpression <- AverageExpression(currCell_subset, features = genes, group.by = "condition", assays = "SCT")
+currCell_subset.averageexpression <- as.matrix(currCell_subset.averageexpression)
+
+pheatmap(currCell_subset.averageexpression[[1]], scale="row", features = genes,col=colorspace::diverge_hsv(240), cexCol=0.5, cellwidth=8, cluster_rows=TRUE, fontsize_row=6, fontsize_col=6, cluster_cols = FALSE, legend = FALSE, cellheight = 8)
+```
+
+```{r}
+Idents(sample) <- "predicted.celltype.l2"
+currCell <- subset(sample, idents = c("CD14 Mono", "CD16 Mono", "cDC2"))
+Idents(currCell) <- "condition"
+currCell_subset <- subset(currCell, idents = c("Control", "Alive_D0", "Dead_D0"))
+currCell_subset$condition <- factor(currCell_subset$condition, levels = c("Control", "Alive_D0", "Dead_D0"), ordered = TRUE)
+```
+
+```{r}
+DimPlot(currCell_subset, group.by = "predicted.celltype.l2", cols = c("#08519c", "#762a83", "#33a02c")) + xlim(5, 15) + ylim(-7, 7)
+```
+
+```{r}
+Idents(sample) <- "predicted.celltype.l2"
+currCell <- subset(sample, idents = c("B naive", "B intermediate", "B memory"))
+Idents(currCell) <- "condition"
+currCell_subset <- subset(currCell, idents = c("Control", "Alive_D0", "Dead_D0"))
+currCell_subset$condition <- factor(currCell_subset$condition, levels = c("Control", "Alive_D0", "Dead_D0"), ordered = TRUE)
+```
+
+```{r}
+DimPlot(currCell_subset, group.by = "predicted.celltype.l2", cols = c("#08519c", "#9ecae1", "#4292c6")) + xlim(-5, 2) + ylim(11, 15)
+```
+
+```{r}
+Idents(sample) <- "predicted.celltype.l2"
+currCell <- subset(sample, idents = c("NK", "NK Proliferating", "CD4 CTL"))
+Idents(currCell) <- "condition"
+currCell_subset <- subset(currCell, idents = c("Control", "Alive_D0", "Dead_D0"))
+currCell_subset$condition <- factor(currCell_subset$condition, levels = c("Control", "Alive_D0", "Dead_D0"), ordered = TRUE)
+```
+
+```{r}
+DimPlot(currCell_subset, group.by = "predicted.celltype.l2", cols = c("#20b2aa", "#33a02c", "#b2df8a")) + xlim(-5, 5) + ylim(-4,8)
+```
+
+# Z-scores for key gene signature
+```{r}
+Idents(sample) <- "predicted.celltype.l2"
+currCell_subset <- subset(sample, idents = c("CD14 Mono"))
+Idents(currCell_subset) <- "condition"
+currCell_subset <- subset(currCell_subset, idents = c("Control", "Alive_D0", "Dead_D0"))
+  
+DefaultAssay(currCell_subset) <- "SCT"
+expdata <- GetAssayData(currCell_subset)
+Pop1<-all_overlap
+pops<-list(Pop1)
+
+#Z-Scores
+z_scores<-NULL
+
+for (i in 1:length(pops)) {
+genes <- pops[[i]]
+zz <- which(tolower(rownames(expdata)) %in% tolower(genes))
+av <- numeric(ncol(expdata))
+
+geneExp <- as.matrix(expdata[zz, ])
+geneExp <- t(scale(t(geneExp)))
+geneExp[is.nan(geneExp)] <- 0
+z_scores <- rbind(z_scores,(av + colSums(geneExp) / length(zz)))
+}
+
+#write.table(z_scores, "./z_scores.tsv", sep="\t", quote=F, col.names=NA)
+currCell_subset@meta.data$pop1_z<-z_scores[1,]
+
+cd14_mono_AvgZ<-NULL
+cd14_mono_AvgZ<-rbind(cd14_mono_AvgZ,(aggregate(currCell_subset$pop1_z, by=list(cluster=currCell_subset@active.ident), mean)[,2]))
+
+Idents(currCell_subset) <- "condition"
+cd14_mono_control <- subset(currCell_subset, idents = c("Control"))
+cd14_mono_day0 <- subset(currCell_subset, idents = c("Alive_D0"))
+cd14_mono_day7 <- subset(currCell_subset, idents = c("Dead_D0"))
+```
+
+```{r}
+FeaturePlot(object=cd14_mono_control, features = "pop1_z",pt.size=.5) + scale_color_gradientn(colors=c("blue","turquoise2","yellow","red","red4"), oob=scales::squish, limits=c(0,1)) + xlim(5, 15) + ylim(-7, 7)
+FeaturePlot(object=cd14_mono_day0, features = "pop1_z",pt.size=.5) + scale_color_gradientn(colors=c("blue","turquoise2","yellow","red","red4"), oob=scales::squish, limits=c(0,1)) + xlim(5, 15) + ylim(-7, 7)
+FeaturePlot(object=cd14_mono_day7, features = "pop1_z",pt.size=.5) + scale_color_gradientn(colors=c("blue","turquoise2","yellow","red","red4"), oob=scales::squish, limits=c(0,1)) + xlim(5, 15) + ylim(-7, 7)
+```
+
+```{r}
+Idents(currCell_subset) <- "predicted.celltype.l2"
+currCell_subset2 <- subset(currCell_subset, idents = c("CD14 Mono"))
+
+Idents(currCell_subset2) <- "condition"
+cd14_mono_control <- subset(currCell_subset2, idents = c("Control"))
+cd14_mono_day0 <- subset(currCell_subset2, idents = c("Alive_D0"))
+cd14_mono_day7 <- subset(currCell_subset2, idents = c("Dead_D0"))
+
+write.csv(cd14_mono_control$pop1_z, file ="/Users/jamrute/Desktop/figure4/v1/innate_immunity/protein_synthesis/ps_CD14 Mono_control.csv", quote = FALSE)
+write.csv(cd14_mono_day0$pop1_z, file ="/Users/jamrute/Desktop/figure4/v1/innate_immunity/protein_synthesis/ps_CD14 Mono_aliveD0.csv", quote = FALSE)
+write.csv(cd14_mono_day7$pop1_z, file ="/Users/jamrute/Desktop/figure4/v1/innate_immunity/protein_synthesis/ps_CD14 Mono_deadD0.csv", quote = FALSE)
+
+
+Idents(currCell_subset) <- "predicted.celltype.l2"
+currCell_subset2 <- subset(currCell_subset, idents = c("CD16 Mono"))
+
+Idents(currCell_subset2) <- "condition"
+cd14_mono_control <- subset(currCell_subset2, idents = c("Control"))
+cd14_mono_day0 <- subset(currCell_subset2, idents = c("Alive_D0"))
+cd14_mono_day7 <- subset(currCell_subset2, idents = c("Dead_D0"))
+
+write.csv(cd14_mono_control$pop1_z, file ="/Users/jamrute/Desktop/figure4/v1/innate_immunity/protein_synthesis/ps_CD16 Mono_control.csv", quote = FALSE)
+write.csv(cd14_mono_day0$pop1_z, file ="/Users/jamrute/Desktop/figure4/v1/innate_immunity/protein_synthesis/ps_CD16 Mono_aliveD0.csv", quote = FALSE)
+write.csv(cd14_mono_day7$pop1_z, file ="/Users/jamrute/Desktop/figure4/v1/innate_immunity/protein_synthesis/ps_CD16 Mono_deadD0.csv", quote = FALSE)
+
+
+Idents(currCell_subset) <- "predicted.celltype.l2"
+currCell_subset2 <- subset(currCell_subset, idents = c("cDC2"))
+
+Idents(currCell_subset2) <- "condition"
+cd14_mono_control <- subset(currCell_subset2, idents = c("Control"))
+cd14_mono_day0 <- subset(currCell_subset2, idents = c("Alive_D0"))
+cd14_mono_day7 <- subset(currCell_subset2, idents = c("Dead_D0"))
+
+write.csv(cd14_mono_control$pop1_z, file ="/Users/jamrute/Desktop/figure4/v1/innate_immunity/protein_synthesis/ps_cDC2_control.csv", quote = FALSE)
+write.csv(cd14_mono_day0$pop1_z, file ="/Users/jamrute/Desktop/figure4/v1/innate_immunity/protein_synthesis/ps_cDC2_aliveD0.csv", quote = FALSE)
+write.csv(cd14_mono_day7$pop1_z, file ="/Users/jamrute/Desktop/figure4/v1/innate_immunity/protein_synthesis/ps_cDC2_deadD0.csv", quote = FALSE)
+
+```
+
+```{r}
+Idents(currCell_subset) <- "predicted.celltype.l2"
+currCell_subset2 <- subset(currCell_subset, idents = c("CD14 Mono"))
+
+Idents(currCell_subset2) <- "condition"
+cd14_mono_control <- subset(currCell_subset2, idents = c("Control"))
+cd14_mono_day0 <- subset(currCell_subset2, idents = c("Alive_D0"))
+cd14_mono_day7 <- subset(currCell_subset2, idents = c("Dead_D0"))
+
+write.csv(cd14_mono_control$pop1_z, file ="/Users/jamrute/Desktop/cd14_predictive_signature_control.csv", quote = FALSE)
+write.csv(cd14_mono_day0$pop1_z, file ="/Users/jamrute/Desktop/cd14_predictive_signature_aliveD0.csv", quote = FALSE)
+write.csv(cd14_mono_day7$pop1_z, file ="/Users/jamrute/Desktop/cd14_predictive_signature_deadD0.csv", quote = FALSE)
+```
+
+# Export data for Random Forest CLassification
+```{r}
+Idents(sample) <- "condition"
+sample_subset <- subset(sample, idents = c("Alive_D0", "Dead_D0"))
+```
+
+```{r}
+unique(sample_subset$predicted.celltype.l2)
+```
+
+```{r}
+# Save the normalized SCT matrix
+write.csv(as.matrix(sample_subset[["SCT"]]@scale.data), 
+          file = "../covid19_day0_predictions/alive_dead_day0_SCT_normalized.txt", quote = FALSE)
+
+# Save the meta data
+write.csv(sample_subset@meta.data, file = "../covid19_day0_predictions/alive_dead_day0_meta.csv", quote = FALSE)
+```
+
+```{r}
+CD14_mono_features <- read.csv2("./random_forest/covid19_day0_predictions/by_cell_type/CD14 Mono_feature_imp.csv", header=TRUE, sep=',')
+CD16_mono_features <- read.csv2("./random_forest/covid19_day0_predictions/by_cell_type/CD16 Mono_feature_imp.csv", header=TRUE, sep=',')
+cDC2_features <- read.csv2("./random_forest/covid19_day0_predictions/by_cell_type/cDC2_feature_imp.csv", header=TRUE, sep=',')
+```
+
+```{r}
+cd14_mono_top100 <- CD14_mono_features$X[1:100]
+cd16_mono_top100 <- CD16_mono_features$X[1:100]
+cdc2_top100 <- cDC2_features$X[1:100]
+```
+
+```{r}
+Reduce(intersect, list(cd14_mono_top100,cd16_mono_top100,cdc2_top100))
+```
+
+
+# Look at overlapping genes
+```{r}
+cd14mono_alive_dead_d0 <- read.csv2("/Users/jamrute/Documents/Graduate_School/Thesis_Lab/Lavine_Projects/Primary/COVID19_PBMC/azimuth/ref_query/single_cell_DGE/AliveD0_DeadD0/DE_CD14 Mono.csv", header=TRUE, sep=',', row.names = 1)
+cd14mono_alive_dead_d0 <- filter(cd14mono_alive_dead_d0, as.numeric(cd14mono_alive_dead_d0$p_val_adj) < 0.05 & as.numeric(cd14mono_alive_dead_d0$avg_log2FC) > 0.5)
+cd14mono_alive_dead_d0_genes <- cd14mono_alive_dead_d0$gene
+
+cd14mono_control_d0 <- read.csv2("/Users/jamrute/Documents/Graduate_School/Thesis_Lab/Lavine_Projects/Primary/COVID19_PBMC/azimuth/ref_query/single_cell_DGE/Donor_Day0/DE_CD14 Mono.csv", header=TRUE, sep=',', row.names = 1)
+cd14mono_control_d0 <- filter(cd14mono_control_d0, as.numeric(cd14mono_control_d0$p_val_adj) < 0.05 & as.numeric(cd14mono_control_d0$avg_log2FC) > 0.5)
+cd14mono_control_d0_genes <- cd14mono_control_d0$gene
+
+CD14_mono_features <- read.csv2("./random_forest/covid19_day0_predictions/by_cell_type/CD14 Mono_feature_imp.csv", header=TRUE, sep=',')
+cd14_mono_top100 <- CD14_mono_features$X[1:25]
+```
+
+```{r}
+length(cd14mono_control_d0_genes)
+```
+
+```{r}
+length(cd14mono_alive_dead_d0_genes)
+```
+
+
+```{r}
+all_overlap <- Reduce(intersect, list(cd14mono_alive_dead_d0_genes, cd14mono_control_d0_genes, cd14_mono_top100))
+all_overlap
+```
+
+```{r}
+length(Reduce(intersect, list(cd14mono_alive_dead_d0_genes, cd14mono_control_d0_genes)))
+```
+
+
+```{r}
+length(Reduce(intersect, list(all_overlap, Reduce(intersect, list(cd14mono_alive_dead_d0_genes, cd14mono_control_d0_genes)))))
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

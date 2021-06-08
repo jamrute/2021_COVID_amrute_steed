@@ -1,0 +1,121 @@
+```{r}
+library(Seurat)
+library(ggplot2)
+library(patchwork)
+library(ggpubr)
+library(dplyr)
+library(Seurat)
+library(patchwork)
+library(sctransform)
+library(ggplot2)
+library(pheatmap)
+library(Seurat)
+library(ggplot2)
+library(Matrix)
+library(RColorBrewer)
+library(dplyr)
+library(scales)
+library(data.table)
+library(stats)
+library("Nebulosa")
+```
+
+# Explore the mapping + ref_query results
+```{r}
+sample <- readRDS('/Users/jamrute/Documents/Graduate_School/Thesis_Lab/Lavine_Projects/Primary/COVID19_PBMC/azimuth/ref_query/cleaned_withPlatelets_query.rds')
+```
+
+# Plot heatmaps of the top Diff exp genes
+```{r}
+Idents(sample) <- "predicted.celltype.l2"
+currCell <- subset(sample, idents = c("NK"))
+Idents(currCell) <- "condition"
+currCell_subset <- subset(currCell, idents = c("Control", "Alive_D7", "Dead_D7"))
+currCell_subset$condition <- factor(currCell_subset$condition, levels = c("Control", "Alive_D7", "Dead_D7"), ordered = TRUE)
+
+DGE <- read.csv2("/Users/jamrute/Documents/Graduate_School/Thesis_Lab/Lavine_Projects/Primary/COVID19_PBMC/azimuth/ref_query/single_cell_DGE/AliveD7_DeadD7/DE_NK.csv", header=TRUE, sep=',', row.names = 1)
+
+DGE <- filter(DGE, as.numeric(DGE$p_val_adj) < 0.05 & as.numeric(DGE$avg_log2FC) > 0.5)
+
+genes <- grep("RPS", DGE$gene, invert=TRUE, value = TRUE)
+genes <- grep("RPL", genes, invert=TRUE, value = TRUE)
+
+DefaultAssay(currCell_subset) <- "SCT"
+currCell_subset.averageexpression <- AverageExpression(currCell_subset, features = genes, group.by = "condition", assays = "SCT")
+currCell_subset.averageexpression <- as.matrix(currCell_subset.averageexpression)
+```
+
+```{r}
+pheatmap(currCell_subset.averageexpression[[1]], scale="row", features = genes,col=colorspace::diverge_hsv(240), cexCol=0.5, cellwidth=8, cluster_rows=TRUE, fontsize_row=6, fontsize_col=6, cluster_cols = FALSE, legend = FALSE, cellheight = 8)
+```
+
+# Z-scores for key gene signatures
+```{r}
+Idents(sample) <- "predicted.celltype.l2"
+currCell_subset <- subset(sample, idents = c("MAIT"))
+Idents(currCell_subset) <- "condition"
+currCell_subset <- subset(currCell_subset, idents = c("Control", "Alive_D7", "Dead_D7"))
+  
+DefaultAssay(currCell_subset) <- "SCT"
+expdata <- GetAssayData(currCell_subset)
+Pop1<-c("DUSP1", "ZFP36L2", "PNRC1", "KLF2")
+pops<-list(Pop1)
+
+#Z-Scores
+z_scores<-NULL
+
+for (i in 1:length(pops)) {
+genes <- pops[[i]]
+zz <- which(tolower(rownames(expdata)) %in% tolower(genes))
+av <- numeric(ncol(expdata))
+
+geneExp <- as.matrix(expdata[zz, ])
+geneExp <- t(scale(t(geneExp)))
+geneExp[is.nan(geneExp)] <- 0
+z_scores <- rbind(z_scores,(av + colSums(geneExp) / length(zz)))
+}
+
+#write.table(z_scores, "./z_scores.tsv", sep="\t", quote=F, col.names=NA)
+currCell_subset@meta.data$pop1_z<-z_scores[1,]
+
+cd14_mono_AvgZ<-NULL
+cd14_mono_AvgZ<-rbind(cd14_mono_AvgZ,(aggregate(currCell_subset$pop1_z, by=list(cluster=currCell_subset@active.ident), mean)[,2]))
+
+Idents(currCell_subset) <- "condition"
+cd14_mono_control <- subset(currCell_subset, idents = c("Control"))
+cd14_mono_day0 <- subset(currCell_subset, idents = c("Alive_D7"))
+cd14_mono_day7 <- subset(currCell_subset, idents = c("Dead_D7"))
+```
+
+```{r}
+FeaturePlot(object=currCell_subset, features = "pop1_z",pt.size=.5) + scale_color_gradientn(colors=c("blue","turquoise2","yellow","red","red4"), oob=scales::squish, limits=c(0,1)) + xlim(-6, -2) + ylim(-1, 1.5)
+FeaturePlot(object=cd14_mono_control, features = "pop1_z",pt.size=.5) + scale_color_gradientn(colors=c("blue","turquoise2","yellow","red","red4"), oob=scales::squish, limits=c(0,1)) + xlim(-6, -2) + ylim(-1, 1.5)
+FeaturePlot(object=cd14_mono_day0, features = "pop1_z",pt.size=.5) + scale_color_gradientn(colors=c("blue","turquoise2","yellow","red","red4"), oob=scales::squish, limits=c(0,1)) + xlim(-6, -2) + ylim(-1, 1.5)
+FeaturePlot(object=cd14_mono_day7, features = "pop1_z",pt.size=.5) + scale_color_gradientn(colors=c("blue","turquoise2","yellow","red","red4"), oob=scales::squish, limits=c(0,1)) + xlim(-6, -2) + ylim(-1, 1.5)
+```
+
+```{r}
+Idents(currCell_subset) <- "predicted.celltype.l2"
+currCell_subset2 <- subset(currCell_subset, idents = c("MAIT"))
+
+Idents(currCell_subset2) <- "condition"
+cd14_mono_control <- subset(currCell_subset2, idents = c("Control"))
+cd14_mono_day0 <- subset(currCell_subset2, idents = c("Alive_D7"))
+cd14_mono_day7 <- subset(currCell_subset2, idents = c("Dead_D7"))
+
+write.csv(cd14_mono_control$pop1_z, file ="/Users/jamrute/Desktop/figure4/MAIT/cc_control.csv", quote = FALSE)
+write.csv(cd14_mono_day0$pop1_z, file ="/Users/jamrute/Desktop/figure4/MAIT/cc_aliveD7.csv", quote = FALSE)
+write.csv(cd14_mono_day7$pop1_z, file ="/Users/jamrute/Desktop/figure4/MAIT/cc_deadD7.csv", quote = FALSE)
+```
+
+
+
+
+
+
+
+
+
+
+
+

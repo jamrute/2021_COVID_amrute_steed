@@ -1,0 +1,278 @@
+```{r}
+library(Seurat)
+library(ggplot2)
+library(patchwork)
+library(ggpubr)
+library(dplyr)
+library(Seurat)
+library(patchwork)
+library(sctransform)
+library(ggplot2)
+library(pheatmap)
+library(Seurat)
+library(ggplot2)
+library(Matrix)
+library(RColorBrewer)
+library(dplyr)
+library(scales)
+library(data.table)
+library(stats)
+library("Nebulosa")
+library(tidyverse)
+library(hrbrthemes)
+library(viridis)
+library(magrittr)
+library(dplyr)
+```
+
+```{r}
+sample <- readRDS('/Users/jamrute/Documents/Graduate_School/Thesis_Lab/Lavine_Projects/Primary/COVID19_PBMC/azimuth/ref_query/cleaned_withPlatelets_query.rds')
+```
+
+```{r}
+CD14Mono <- read_delim("./AliveD7_DeadD7/DE_CD14 Mono.csv", ",", escape_double = FALSE, trim_ws = TRUE)
+CD14Mono$cell <- "CD14 Mono"
+CD14Mono$sigpvalue <- ifelse(CD14Mono$p_val_adj < 0.05, "p < 0.05","p > 0.05")
+CD14Mono$sig <- ifelse(CD14Mono$p_val_adj < 0.05 & CD14Mono$avg_log2FC > 0.58, "Significant","Not Significant")
+CD14Mono$avg_log2FC <- ifelse(CD14Mono$cluster == "Alive_D7", CD14Mono$avg_log2FC ,CD14Mono$avg_log2FC * -1)
+
+CD16Mono <- read_delim("./AliveD7_DeadD7/DE_CD16 Mono.csv", ",", escape_double = FALSE, trim_ws = TRUE)
+CD16Mono$cell <- "CD16 Mono"
+CD16Mono$sigpvalue <- ifelse(CD16Mono$p_val_adj < 0.05, "p < 0.05","p > 0.05")
+CD16Mono$sig <- ifelse(CD16Mono$p_val_adj < 0.05 & CD16Mono$avg_log2FC > 0.58, "Significant","Not Significant")
+CD16Mono$avg_log2FC <- ifelse(CD16Mono$cluster == "Alive_D7", CD16Mono$avg_log2FC ,CD16Mono$avg_log2FC * -1)
+
+CD4TCM <- read_delim("./AliveD7_DeadD7/DE_CD4 TCM.csv", ",", escape_double = FALSE, trim_ws = TRUE)
+CD4TCM$cell <- "CD4 TCM"
+CD4TCM$sigpvalue <- ifelse(CD4TCM$p_val_adj < 0.05, "p < 0.05","p > 0.05")
+CD4TCM$sig <- ifelse(CD4TCM$p_val_adj < 0.05 & CD4TCM$avg_log2FC > 0.58, "Significant","Not Significant")
+CD4TCM$avg_log2FC <- ifelse(CD4TCM$cluster == "Alive_D7", CD4TCM$avg_log2FC ,CD4TCM$avg_log2FC * -1)
+
+CD8TEM <- read_delim("./AliveD7_DeadD7/DE_CD8 TEM.csv", ",", escape_double = FALSE, trim_ws = TRUE)
+CD8TEM$cell <- "CD8 TEM"
+CD8TEM$sigpvalue <- ifelse(CD8TEM$p_val_adj < 0.05, "p < 0.05","p > 0.05")
+CD8TEM$sig <- ifelse(CD8TEM$p_val_adj < 0.05 & CD8TEM$avg_log2FC > 0.58, "Significant","Not Significant")
+CD8TEM$avg_log2FC <- ifelse(CD8TEM$cluster == "Alive_D7", CD8TEM$avg_log2FC ,CD8TEM$avg_log2FC * -1)
+
+MAIT <- read_delim("./AliveD7_DeadD7/DE_MAIT.csv", ",", escape_double = FALSE, trim_ws = TRUE)
+MAIT$cell <- "MAIT"
+MAIT$sigpvalue <- ifelse(MAIT$p_val_adj < 0.05, "p < 0.05","p > 0.05")
+MAIT$sig <- ifelse(MAIT$p_val_adj < 0.05 & MAIT$avg_log2FC > 0.58, "Significant","Not Significant")
+MAIT$avg_log2FC <- ifelse(MAIT$cluster == "Alive_D7", MAIT$avg_log2FC ,MAIT$avg_log2FC * -1)
+
+CD4CTL <- read_delim("./AliveD7_DeadD7/DE_CD4 CTL.csv", ",", escape_double = FALSE, trim_ws = TRUE)
+CD4CTL$cell <- "CD4 CTL"
+CD4CTL$sigpvalue <- ifelse(CD4CTL$p_val_adj < 0.05, "p < 0.05","p > 0.05")
+CD4CTL$sig <- ifelse(CD4CTL$p_val_adj < 0.05 & CD4CTL$avg_log2FC > 0.58, "Significant","Not Significant")
+CD4CTL$avg_log2FC <- ifelse(CD4CTL$cluster == "Alive_D7", CD4CTL$avg_log2FC ,CD4CTL$avg_log2FC * -1)
+
+NK <- read_delim("./AliveD7_DeadD7/DE_NK.csv", ",", escape_double = FALSE, trim_ws = TRUE)
+NK$cell <- "NK"
+NK$sigpvalue <- ifelse(NK$p_val_adj < 0.05, "p < 0.05","p > 0.05")
+NK$sig <- ifelse(NK$p_val_adj < 0.05 & NK$avg_log2FC > 0.58, "Significant","Not Significant")
+NK$avg_log2FC <- ifelse(NK$cluster == "Alive_D7", NK$avg_log2FC ,NK$avg_log2FC * -1)
+
+NKProliferating <- read_delim("./AliveD7_DeadD7/DE_NK Proliferating.csv", ",", escape_double = FALSE, trim_ws = TRUE)
+NKProliferating$cell <- "NK Proliferating"
+NKProliferating$sigpvalue <- ifelse(NKProliferating$p_val_adj < 0.05, "p < 0.05","p > 0.05")
+NKProliferating$sig <- ifelse(NKProliferating$p_val_adj < 0.05 & NKProliferating$avg_log2FC > 0.58, "Significant","Not Significant")
+NKProliferating$avg_log2FC <- ifelse(NKProliferating$cluster == "Alive_D7", NKProliferating$avg_log2FC ,NKProliferating$avg_log2FC * -1)
+
+Treg <- read_delim("./AliveD7_DeadD7/DE_Treg.csv", ",", escape_double = FALSE, trim_ws = TRUE)
+Treg$cell <- "Treg"
+Treg$sigpvalue <- ifelse(Treg$p_val_adj < 0.05, "p < 0.05","p > 0.05")
+Treg$sig <- ifelse(Treg$p_val_adj < 0.05 & Treg$avg_log2FC > 0.58, "Significant","Not Significant")
+Treg$avg_log2FC <- ifelse(Treg$cluster == "Alive_D7", Treg$avg_log2FC ,Treg$avg_log2FC * -1)
+
+CD4Naive <- read_delim("./AliveD7_DeadD7/DE_CD4 Naive.csv", ",", escape_double = FALSE, trim_ws = TRUE)
+CD4Naive$cell <- "CD4 Naive"
+CD4Naive$sigpvalue <- ifelse(CD4Naive$p_val_adj < 0.05, "p < 0.05","p > 0.05")
+CD4Naive$sig <- ifelse(CD4Naive$p_val_adj < 0.05 & CD4Naive$avg_log2FC > 0.58, "Significant","Not Significant")
+CD4Naive$avg_log2FC <- ifelse(CD4Naive$cluster == "Alive_D7", CD4Naive$avg_log2FC ,CD4Naive$avg_log2FC * -1)
+
+Bnaive <- read_delim("./AliveD7_DeadD7/DE_B naive.csv", ",", escape_double = FALSE, trim_ws = TRUE)
+Bnaive$cell <- "B naive"
+Bnaive$sigpvalue <- ifelse(Bnaive$p_val_adj < 0.05, "p < 0.05","p > 0.05")
+Bnaive$sig <- ifelse(Bnaive$p_val_adj < 0.05 & Bnaive$avg_log2FC > 0.58, "Significant","Not Significant")
+Bnaive$avg_log2FC <- ifelse(Bnaive$cluster == "Alive_D7", Bnaive$avg_log2FC ,Bnaive$avg_log2FC * -1)
+
+CD4TEM <- read_delim("./AliveD7_DeadD7/DE_CD4 TEM.csv", ",", escape_double = FALSE, trim_ws = TRUE)
+CD4TEM$cell <- "CD4 TEM"
+CD4TEM$sigpvalue <- ifelse(CD4TEM$p_val_adj < 0.05, "p < 0.05","p > 0.05")
+CD4TEM$sig <- ifelse(CD4TEM$p_val_adj < 0.05 & CD4TEM$avg_log2FC > 0.58, "Significant","Not Significant")
+CD4TEM$avg_log2FC <- ifelse(CD4TEM$cluster == "Alive_D7", CD4TEM$avg_log2FC ,CD4TEM$avg_log2FC * -1)
+
+gdT <- read_delim("./AliveD7_DeadD7/DE_gdT.csv", ",", escape_double = FALSE, trim_ws = TRUE)
+gdT$cell <- "gdT"
+gdT$sigpvalue <- ifelse(gdT$p_val_adj < 0.05, "p < 0.05","p > 0.05")
+gdT$sig <- ifelse(gdT$p_val_adj < 0.05 & gdT$avg_log2FC > 0.58, "Significant","Not Significant")
+gdT$avg_log2FC <- ifelse(gdT$cluster == "Alive_D7", gdT$avg_log2FC ,gdT$avg_log2FC * -1)
+
+Bintermediate <- read_delim("./AliveD7_DeadD7/DE_B intermediate.csv", ",", escape_double = FALSE, trim_ws = TRUE)
+Bintermediate$cell <- "B intermediate"
+Bintermediate$sigpvalue <- ifelse(Bintermediate$p_val_adj < 0.05, "p < 0.05","p > 0.05")
+Bintermediate$sig <- ifelse(Bintermediate$p_val_adj < 0.05 & Bintermediate$avg_log2FC > 0.58, "Significant","Not Significant")
+Bintermediate$avg_log2FC <- ifelse(Bintermediate$cluster == "Alive_D7", Bintermediate$avg_log2FC ,Bintermediate$avg_log2FC * -1)
+
+pDC <- read_delim("./AliveD7_DeadD7/DE_pDC.csv", ",", escape_double = FALSE, trim_ws = TRUE)
+pDC$cell <- "pDC"
+pDC$sigpvalue <- ifelse(pDC$p_val_adj < 0.05, "p < 0.05","p > 0.05")
+pDC$sig <- ifelse(pDC$p_val_adj < 0.05 & pDC$avg_log2FC > 0.58, "Significant","Not Significant")
+pDC$avg_log2FC <- ifelse(pDC$cluster == "Alive_D7", pDC$avg_log2FC ,pDC$avg_log2FC * -1)
+
+Bmemory <- read_delim("./AliveD7_DeadD7/DE_B memory.csv", ",", escape_double = FALSE, trim_ws = TRUE)
+Bmemory$cell <- "B memory"
+Bmemory$sigpvalue <- ifelse(Bmemory$p_val_adj < 0.05, "p < 0.05","p > 0.05")
+Bmemory$sig <- ifelse(Bmemory$p_val_adj < 0.05 & Bmemory$avg_log2FC > 0.58, "Significant","Not Significant")
+Bmemory$avg_log2FC <- ifelse(Bmemory$cluster == "Alive_D7", Bmemory$avg_log2FC ,Bmemory$avg_log2FC * -1)
+
+NK_CD56bright <- read_delim("./AliveD7_DeadD7/DE_NK_CD56bright.csv", ",", escape_double = FALSE, trim_ws = TRUE)
+NK_CD56bright$cell <- "NK_CD56bright"
+NK_CD56bright$sigpvalue <- ifelse(NK_CD56bright$p_val_adj < 0.05, "p < 0.05","p > 0.05")
+NK_CD56bright$sig <- ifelse(NK_CD56bright$p_val_adj < 0.05 & NK_CD56bright$avg_log2FC > 0.58, "Significant","Not Significant")
+NK_CD56bright$avg_log2FC <- ifelse(NK_CD56bright$cluster == "Alive_D7", NK_CD56bright$avg_log2FC ,NK_CD56bright$avg_log2FC * -1)
+
+CD8Naive <- read_delim("./AliveD7_DeadD7/DE_CD8 Naive.csv", ",", escape_double = FALSE, trim_ws = TRUE)
+CD8Naive$cell <- "CD8 Naive"
+CD8Naive$sigpvalue <- ifelse(CD8Naive$p_val_adj < 0.05, "p < 0.05","p > 0.05")
+CD8Naive$sig <- ifelse(CD8Naive$p_val_adj < 0.05 & CD8Naive$avg_log2FC > 0.58, "Significant","Not Significant")
+CD8Naive$avg_log2FC <- ifelse(CD8Naive$cluster == "Alive_D7", CD8Naive$avg_log2FC ,CD8Naive$avg_log2FC * -1)
+
+HSPC <- read_delim("./AliveD7_DeadD7/DE_HSPC.csv", ",", escape_double = FALSE, trim_ws = TRUE)
+HSPC$cell <- "HSPC"
+HSPC$sigpvalue <- ifelse(HSPC$p_val_adj < 0.05, "p < 0.05","p > 0.05")
+HSPC$sig <- ifelse(HSPC$p_val_adj < 0.05 & HSPC$avg_log2FC > 0.58, "Significant","Not Significant")
+HSPC$avg_log2FC <- ifelse(HSPC$cluster == "Alive_D7", HSPC$avg_log2FC ,HSPC$avg_log2FC * -1)
+
+Plasmablast <- read_delim("./AliveD7_DeadD7/DE_Plasmablast.csv", ",", escape_double = FALSE, trim_ws = TRUE)
+Plasmablast$cell <- "Plasmablast"
+Plasmablast$sigpvalue <- ifelse(Plasmablast$p_val_adj < 0.05, "p < 0.05","p > 0.05")
+Plasmablast$sig <- ifelse(Plasmablast$p_val_adj < 0.05 & Plasmablast$avg_log2FC > 0.58, "Significant","Not Significant")
+Plasmablast$avg_log2FC <- ifelse(Plasmablast$cluster == "Alive_D7", Plasmablast$avg_log2FC ,Plasmablast$avg_log2FC * -1)
+
+CD8TCM <- read_delim("./AliveD7_DeadD7/DE_CD8 TCM.csv", ",", escape_double = FALSE, trim_ws = TRUE)
+CD8TCM$cell <- "CD8 TCM"
+CD8TCM$sigpvalue <- ifelse(CD8TCM$p_val_adj < 0.05, "p < 0.05","p > 0.05")
+CD8TCM$sig <- ifelse(CD8TCM$p_val_adj < 0.05 & CD8TCM$avg_log2FC > 0.58, "Significant","Not Significant")
+CD8TCM$avg_log2FC <- ifelse(CD8TCM$cluster == "Alive_D7", CD8TCM$avg_log2FC ,CD8TCM$avg_log2FC * -1)
+
+CD4Proliferating <- read_delim("./AliveD7_DeadD7/DE_CD4 Proliferating.csv", ",", escape_double = FALSE, trim_ws = TRUE)
+CD4Proliferating$cell <- "CD4 Proliferating"
+CD4Proliferating$sigpvalue <- ifelse(CD4Proliferating$p_val_adj < 0.05, "p < 0.05","p > 0.05")
+CD4Proliferating$sig <- ifelse(CD4Proliferating$p_val_adj < 0.05 & CD4Proliferating$avg_log2FC > 0.58, "Significant","Not Significant")
+CD4Proliferating$avg_log2FC <- ifelse(CD4Proliferating$cluster == "Alive_D7", CD4Proliferating$avg_log2FC ,CD4Proliferating$avg_log2FC * -1)
+
+cDC1 <- read_delim("./AliveD7_DeadD7/DE_cDC1.csv", ",", escape_double = FALSE, trim_ws = TRUE)
+cDC1$cell <- "cDC1"
+cDC1$sigpvalue <- ifelse(cDC1$p_val_adj < 0.05, "p < 0.05","p > 0.05")
+cDC1$sig <- ifelse(cDC1$p_val_adj < 0.05 & cDC1$avg_log2FC > 0.58, "Significant","Not Significant")
+cDC1$avg_log2FC <- ifelse(cDC1$cluster == "Alive_D7", cDC1$avg_log2FC ,cDC1$avg_log2FC * -1)
+
+dnT <- read_delim("./AliveD7_DeadD7/DE_dnT.csv", ",", escape_double = FALSE, trim_ws = TRUE)
+dnT$cell <- "dnT"
+dnT$sigpvalue <- ifelse(dnT$p_val_adj < 0.05, "p < 0.05","p > 0.05")
+dnT$sig <- ifelse(dnT$p_val_adj < 0.05 & dnT$avg_log2FC > 0.58, "Significant","Not Significant")
+dnT$avg_log2FC <- ifelse(dnT$cluster == "Alive_D7", dnT$avg_log2FC ,dnT$avg_log2FC * -1)
+
+cDC2 <- read_delim("./AliveD7_DeadD7/DE_cDC2.csv", ",", escape_double = FALSE, trim_ws = TRUE)
+cDC2$cell <- "cDC2"
+cDC2$sigpvalue <- ifelse(cDC2$p_val_adj < 0.05, "p < 0.05","p > 0.05")
+cDC2$sig <- ifelse(cDC2$p_val_adj < 0.05 & cDC2$avg_log2FC > 0.58, "Significant","Not Significant")
+cDC2$avg_log2FC <- ifelse(cDC2$cluster == "Alive_D7", cDC2$avg_log2FC ,cDC2$avg_log2FC * -1)
+
+ILC <- read_delim("./AliveD7_DeadD7/DE_ILC.csv", ",", escape_double = FALSE, trim_ws = TRUE)
+ILC$cell <- "ILC"
+ILC$sigpvalue <- ifelse(ILC$p_val_adj < 0.05, "p < 0.05","p > 0.05")
+ILC$sig <- ifelse(ILC$p_val_adj < 0.05 & ILC$avg_log2FC > 0.58, "Significant","Not Significant")
+ILC$avg_log2FC <- ifelse(ILC$cluster == "Alive_D7", ILC$avg_log2FC ,ILC$avg_log2FC * -1)
+
+CD8Proliferating <- read_delim("./AliveD7_DeadD7/DE_CD8 Proliferating.csv", ",", escape_double = FALSE, trim_ws = TRUE)
+CD8Proliferating$cell <- "CD8 Proliferating"
+CD8Proliferating$sigpvalue <- ifelse(CD8Proliferating$p_val_adj < 0.05, "p < 0.05","p > 0.05")
+CD8Proliferating$sig <- ifelse(CD8Proliferating$p_val_adj < 0.05 & CD8Proliferating$avg_log2FC > 0.58, "Significant","Not Significant")
+CD8Proliferating$avg_log2FC <- ifelse(CD8Proliferating$cluster == "Alive_D7", CD8Proliferating$avg_log2FC ,CD8Proliferating$avg_log2FC * -1)
+
+ASDC <- read_delim("./AliveD7_DeadD7/DE_ASDC.csv", ",", escape_double = FALSE, trim_ws = TRUE)
+ASDC$cell <- "ASDC"
+ASDC$sigpvalue <- ifelse(ASDC$p_val_adj < 0.05, "p < 0.05","p > 0.05")
+ASDC$sig <- ifelse(ASDC$p_val_adj < 0.05 & ASDC$avg_log2FC > 0.58, "Significant","Not Significant")
+ASDC$avg_log2FC <- ifelse(ASDC$cluster == "Alive_D7", ASDC$avg_log2FC ,ASDC$avg_log2FC * -1)
+
+Platelets <- read_delim("./AliveD7_DeadD7/DE_Platelet.csv", ",", escape_double = FALSE, trim_ws = TRUE)
+Platelets$cell <- "Platelets"
+Platelets$sigpvalue <- ifelse(Platelets$p_val_adj < 0.05, "p < 0.05","p > 0.05")
+Platelets$sig <- ifelse(Platelets$p_val_adj < 0.05 & Platelets$avg_log2FC > 0.58, "Significant","Not Significant")
+Platelets$avg_log2FC <- ifelse(Platelets$cluster == "Alive_D7", Platelets$avg_log2FC ,Platelets$avg_log2FC * -1)
+```
+
+```{r}
+#create data frame
+data <- data.frame(rbind(CD14Mono, CD16Mono, CD4TCM, CD8TEM, MAIT, CD4CTL, NK, NKProliferating, Treg, CD4Naive, Bnaive, CD4TEM, gdT, Bintermediate, pDC, Bmemory, NK_CD56bright, CD8Naive, HSPC, Plasmablast, CD8TCM, CD4Proliferating, cDC1, dnT, cDC2, ILC, CD8Proliferating, ASDC, Platelets))
+```
+
+```{r dot plot}
+data$cell <- factor(data$cell, levels = c("CD14 Mono", "CD16 Mono", "CD4 TCM", "CD8 TEM", "MAIT", "CD4 CTL", "NK", "NK Proliferating", "Treg", "CD4 Naive", "B naive", "CD4 TEM", "gdT", "B intermediate", "pDC", "B memory", "NK_CD56bright", "CD8 Naive", "HSPC", "Plasmablast", "CD8 TCM", "CD4 Proliferating", "cDC1", "dnT", "cDC2", "ILC", "CD8 Proliferating", "ASDC", "Platelets"))
+```
+
+```{r}
+df_Count <- data %>% group_by(sig, cell) %>% count()
+df_Count <- data.frame(df_Count)
+df_Count <- df_Count %>% add_row(sig = "Significant", cell = "cDC1", n = 0)
+df_Count <- df_Count %>% add_row(sig = "Significant", cell = "CD4 CTL", n = 0)
+df_Count <- df_Count %>% add_row(sig = "Significant", cell = "CD8 Proliferating", n = 0)
+df_Count <- df_Count %>% add_row(sig = "Significant", cell = "ILC", n = 0)
+df_Count <- df_Count %>% add_row(sig = "Significant", cell = "ASDC", n = 0)
+
+x <- df_Count[with(df_Count,order(n,decreasing = T)) ,][df_Count[with(df_Count,order(n, decreasing = T)) ,]$sig=="Significant",]$cell
+df_Count$cell <- factor(df_Count$cell, levels = x)
+```
+
+```{r}
+df_Count <- data %>% group_by(sig, cluster, cell) %>% count()
+df_Count
+```
+
+```{r}
+df_Count <- data.frame(df_Count)
+```
+
+```{r}
+df_Count <- df_Count %>% add_row(sig = "Significant", cluster = "Alive_D7", cell = "ASDC", n = 0)
+df_Count <- df_Count %>% add_row(sig = "Significant", cluster = "Dead_D7", cell = "ASDC", n = 0)
+
+df_Count <- df_Count %>% add_row(sig = "Significant", cluster = "Alive_D7", cell = "ILC", n = 0)
+df_Count <- df_Count %>% add_row(sig = "Significant", cluster = "Dead_D7", cell = "ILC", n = 0)
+
+df_Count <- df_Count %>% add_row(sig = "Significant", cluster = "Alive_D7", cell = "CD8 Proliferating", n = 0)
+df_Count <- df_Count %>% add_row(sig = "Significant", cluster = "Dead_D7", cell = "CD8 Proliferating", n = 0)
+
+df_Count <- df_Count %>% add_row(sig = "Significant", cluster = "Alive_D7", cell = "cDC1", n = 0)
+df_Count <- df_Count %>% add_row(sig = "Significant", cluster = "Dead_D7", cell = "cDC1", n = 0)
+
+df_Count <- df_Count %>% add_row(sig = "Significant", cluster = "Alive_D7", cell = "CD4 CTL", n = 0)
+df_Count <- df_Count %>% add_row(sig = "Significant", cluster = "Dead_D7", cell = "CD4 CTL", n = 0)
+```
+
+```{r}
+data$cell <- factor(data$cell, levels = x)
+data %>%
+  ggplot(aes(x=cell, y=avg_log2FC, fill=cell, color=sig)) +
+  geom_jitter(size=1, alpha=0.5, position=position_jitter(0.2)) + 
+  theme_ipsum() +
+  theme(
+    legend.position="none",
+    plot.title = element_text(size=11),
+    axis.text.x = element_text(angle = 90, size=4)
+  ) + scale_y_continuous(limits = c(-5, 4)) +
+  ggtitle("DE Donor_Day7") +
+  xlab("Cell types") +
+  scale_shape_manual(values=c(1,1))+
+  scale_color_manual(values=c("grey", "red")) 
+```
+
+```{r}
+df_Count$cell <- factor(df_Count$cell, levels = x)
+df_Count <- filter(df_Count, df_Count$sig == "Significant")
+ggplot(df_Count, aes(x = cell, y = n, fill = cluster)) + geom_col() + labs(x="Cell Type", y="#Genes", fill="Significance") + scale_fill_manual(values = c("red3", "dodgerblue4")) + theme_bw() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+ theme(panel.border = element_blank(), panel.grid.major = element_blank(),
+panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
+```

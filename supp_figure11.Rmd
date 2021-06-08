@@ -1,0 +1,203 @@
+```{r}
+library(Seurat)
+library(ggplot2)
+library(patchwork)
+library(ggpubr)
+library(dplyr)
+library(Seurat)
+library(patchwork)
+library(sctransform)
+library(ggplot2)
+library(pheatmap)
+library(Seurat)
+library(ggplot2)
+library(Matrix)
+library(RColorBrewer)
+library(dplyr)
+library(scales)
+library(data.table)
+library(stats)
+library("Nebulosa")
+```
+
+# Explore the mapping + ref_query results
+```{r}
+sample <- readRDS("../sample_normalized.rds")
+```
+
+# Plot heatmaps of the top Diff exp genes
+```{r}
+genes <- c("CEBPB","CSNK2A1","ELK1","FOS","GRB2","HRAS","IL6","IL6R","IL6ST","JAK1","JAK2","JAK3","JUN","MAP2K1","MAPK3","PTPN11","RAF1","SHC1","SOS1","SRF","STAT3")
+```
+
+```{r}
+DefaultAssay(sample) <- "SCT"
+sample.averageexpression <- AverageExpression(sample, features = genes, group.by="condition", assays = "SCT")
+sample.averageexpression <- as.matrix(sample.averageexpression)
+
+pheatmap(sample.averageexpression[[1]], scale="row", features = genes,col=colorspace::diverge_hsv(240), cexCol=0.5, cellwidth=8, cluster_rows=TRUE, fontsize_row=6, fontsize_col=6, cluster_cols = FALSE, legend = FALSE, cellheight = 8)
+```
+
+```{r}
+Idents(sample) <- "predicted.celltype.l2"
+currCell <- subset(sample, idents = c("CD14 Mono"))
+Idents(currCell) <- "condition"
+currCell$condition <- factor(currCell$condition, levels = c("Control", "Alive_D0", "Dead_D0", "Alive_D7", "Dead_D7"), ordered = TRUE)
+
+DefaultAssay(currCell) <- "SCT"
+currCell.averageexpression <- AverageExpression(currCell, features = genes, group.by = "condition", assays = "SCT")
+currCell.averageexpression <- as.matrix(currCell.averageexpression)
+
+pheatmap(currCell.averageexpression[[1]], scale="row", features = genes,col=colorspace::diverge_hsv(240), cexCol=0.5, cellwidth=8, cluster_rows=TRUE, fontsize_row=6, fontsize_col=6, cluster_cols = FALSE, legend = FALSE, cellheight = 8)
+```
+
+```{r}
+Idents(sample) <- "predicted.celltype.l2"
+currCell <- subset(sample, idents = c("CD16 Mono"))
+Idents(currCell) <- "condition"
+currCell$condition <- factor(currCell$condition, levels = c("Control", "Alive_D0", "Dead_D0", "Alive_D7", "Dead_D7"), ordered = TRUE)
+
+DefaultAssay(currCell) <- "SCT"
+currCell.averageexpression <- AverageExpression(currCell, features = genes, group.by = "condition", assays = "SCT")
+currCell.averageexpression <- as.matrix(currCell.averageexpression)
+
+pheatmap(currCell.averageexpression[[1]], scale="row", features = genes,col=colorspace::diverge_hsv(240), cexCol=0.5, cellwidth=8, cluster_rows=TRUE, fontsize_row=6, fontsize_col=6, cluster_cols = FALSE, legend = FALSE, cellheight = 8)
+```
+
+```{r}
+Idents(sample) <- "predicted.celltype.l2"
+currCell <- subset(sample, idents = c("cDC2"))
+Idents(currCell) <- "condition"
+currCell$condition <- factor(currCell$condition, levels = c("Control", "Alive_D0", "Dead_D0", "Alive_D7", "Dead_D7"), ordered = TRUE)
+
+DefaultAssay(currCell) <- "SCT"
+currCell.averageexpression <- AverageExpression(currCell, features = c("CEBPB","CSNK2A1","ELK1","FOS","GRB2","HRAS","IL6R","IL6ST","JAK1","JAK2","JAK3","JUN","MAP2K1","MAPK3","PTPN11","RAF1","SHC1","SOS1","SRF","STAT3"), group.by = "condition", assays = "SCT")
+currCell.averageexpression <- as.matrix(currCell.averageexpression)
+
+pheatmap(currCell.averageexpression[[1]], scale="row", features = genes,col=colorspace::diverge_hsv(240), cexCol=0.5, cellwidth=8, cluster_rows=TRUE, fontsize_row=6, fontsize_col=6, cluster_cols = FALSE, legend = FALSE, cellheight = 8)
+```
+
+```{r}
+Idents(sample) <- "predicted.celltype.l2"
+currCell <- subset(sample, idents = c("CD14 Mono", "CD16 Mono", "cDC2"))
+Idents(currCell) <- "condition"
+currCell$condition <- factor(currCell$condition, levels = c("Control", "Alive_D0", "Dead_D0", "Alive_D7", "Dead_D7"), ordered = TRUE)
+```
+
+```{r}
+DefaultAssay(currCell) <- "SCT"
+patchwork::wrap_plots(FeaturePlot(currCell, features = "LGALS3", split.by = "condition")) & xlim(5, 15) & ylim(-7, 7) & scale_color_gradientn(colors=c("blue","turquoise2","yellow","red","red4"), oob=scales::squish, limits=c(0,2))
+```
+
+# Z-scores for key gene signature
+```{r}
+Idents(sample) <- "predicted.celltype.l2"
+currCell_subset <- subset(sample, idents = c("CD14 Mono", "CD16 Mono", "cDC2"))
+Idents(currCell_subset) <- "condition"
+currCell_subset <- subset(currCell_subset, idents = c("Control", "Alive_D0", "Dead_D0", "Alive_D7", "Dead_D7"))
+  
+DefaultAssay(currCell_subset) <- "SCT"
+expdata <- GetAssayData(currCell_subset)
+Pop1<-c("CEBPB","CSNK2A1","ELK1","FOS","GRB2","HRAS","IL6","IL6R","IL6ST","JAK1","JAK2","JAK3","JUN","MAP2K1","MAPK3","PTPN11","RAF1","SHC1","SOS1","SRF","STAT3")
+pops<-list(Pop1)
+
+#Z-Scores
+z_scores<-NULL
+
+for (i in 1:length(pops)) {
+genes <- pops[[i]]
+zz <- which(tolower(rownames(expdata)) %in% tolower(genes))
+av <- numeric(ncol(expdata))
+
+geneExp <- as.matrix(expdata[zz, ])
+geneExp <- t(scale(t(geneExp)))
+geneExp[is.nan(geneExp)] <- 0
+z_scores <- rbind(z_scores,(av + colSums(geneExp) / length(zz)))
+}
+
+#write.table(z_scores, "./z_scores.tsv", sep="\t", quote=F, col.names=NA)
+currCell_subset@meta.data$pop1_z<-z_scores[1,]
+
+Idents(currCell_subset) <- "condition"
+control <- subset(currCell_subset, idents = c("Control"))
+alive_day0 <- subset(currCell_subset, idents = c("Alive_D0"))
+alive_day7 <- subset(currCell_subset, idents = c("Alive_D7"))
+dead_day0 <- subset(currCell_subset, idents = c("Dead_D0"))
+dead_day7 <- subset(currCell_subset, idents = c("Dead_D7"))
+```
+
+```{r}
+FeaturePlot(object=control, features = "pop1_z",pt.size=.5) + scale_color_gradientn(colors=c("blue","turquoise2","yellow","red","red4"), oob=scales::squish, limits=c(0,1)) + xlim(5, 15) + ylim(-7, 7)
+
+FeaturePlot(object=alive_day0, features = "pop1_z",pt.size=.5) + scale_color_gradientn(colors=c("blue","turquoise2","yellow","red","red4"), oob=scales::squish, limits=c(0,1)) + xlim(5, 15) + ylim(-7, 7)
+FeaturePlot(object=alive_day7, features = "pop1_z",pt.size=.5) + scale_color_gradientn(colors=c("blue","turquoise2","yellow","red","red4"), oob=scales::squish, limits=c(0,1)) + xlim(5, 15) + ylim(-7, 7)
+
+FeaturePlot(object=dead_day0, features = "pop1_z",pt.size=.5) + scale_color_gradientn(colors=c("blue","turquoise2","yellow","red","red4"), oob=scales::squish, limits=c(0,2)) + xlim(5, 15) + ylim(-7, 7)
+FeaturePlot(object=dead_day7, features = "pop1_z",pt.size=.5) + scale_color_gradientn(colors=c("blue","turquoise2","yellow","red","red4"), oob=scales::squish, limits=c(0,1)) + xlim(5, 15) + ylim(-7, 7)
+```
+
+```{r}
+Idents(currCell_subset) <- "predicted.celltype.l2"
+currCell_subset2 <- subset(currCell_subset, idents = c("CD14 Mono"))
+
+Idents(currCell_subset2) <- "condition"
+control <- subset(currCell_subset2, idents = c("Control"))
+alive_day0 <- subset(currCell_subset2, idents = c("Alive_D0"))
+alive_day7 <- subset(currCell_subset2, idents = c("Alive_D7"))
+dead_day0 <- subset(currCell_subset2, idents = c("Dead_D0"))
+dead_day7 <- subset(currCell_subset2, idents = c("Dead_D7"))
+
+write.csv(control$pop1_z, file ="/Users/jamrute/Desktop/IL6_CD14 Mono_control.csv", quote = FALSE)
+write.csv(alive_day0$pop1_z, file ="/Users/jamrute/Desktop/IL6_CD14 Mono_aliveD0.csv", quote = FALSE)
+write.csv(alive_day7$pop1_z, file ="/Users/jamrute/Desktop/IL6_CD14 Mono_aliveD7.csv", quote = FALSE)
+write.csv(dead_day0$pop1_z, file ="/Users/jamrute/Desktop/IL6_CD14 Mono_deadD0.csv", quote = FALSE)
+write.csv(dead_day7$pop1_z, file ="/Users/jamrute/Desktop/IL6_CD14 Mono_deadD7.csv", quote = FALSE)
+
+Idents(currCell_subset) <- "predicted.celltype.l2"
+currCell_subset2 <- subset(currCell_subset, idents = c("CD16 Mono"))
+
+Idents(currCell_subset2) <- "condition"
+control <- subset(currCell_subset2, idents = c("Control"))
+alive_day0 <- subset(currCell_subset2, idents = c("Alive_D0"))
+alive_day7 <- subset(currCell_subset2, idents = c("Alive_D7"))
+dead_day0 <- subset(currCell_subset2, idents = c("Dead_D0"))
+dead_day7 <- subset(currCell_subset2, idents = c("Dead_D7"))
+
+write.csv(control$pop1_z, file ="/Users/jamrute/Desktop/IL6_CD16 Mono_control.csv", quote = FALSE)
+write.csv(alive_day0$pop1_z, file ="/Users/jamrute/Desktop/IL6_CD16 Mono_aliveD0.csv", quote = FALSE)
+write.csv(alive_day7$pop1_z, file ="/Users/jamrute/Desktop/IL6_CD16 Mono_aliveD7.csv", quote = FALSE)
+write.csv(dead_day0$pop1_z, file ="/Users/jamrute/Desktop/IL6_CD16 Mono_deadD0.csv", quote = FALSE)
+write.csv(dead_day7$pop1_z, file ="/Users/jamrute/Desktop/IL6_CD16 Mono_deadD7.csv", quote = FALSE)
+
+
+
+Idents(currCell_subset) <- "predicted.celltype.l2"
+currCell_subset2 <- subset(currCell_subset, idents = c("cDC2"))
+
+Idents(currCell_subset2) <- "condition"
+control <- subset(currCell_subset2, idents = c("Control"))
+alive_day0 <- subset(currCell_subset2, idents = c("Alive_D0"))
+alive_day7 <- subset(currCell_subset2, idents = c("Alive_D7"))
+dead_day0 <- subset(currCell_subset2, idents = c("Dead_D0"))
+dead_day7 <- subset(currCell_subset2, idents = c("Dead_D7"))
+
+write.csv(control$pop1_z, file ="/Users/jamrute/Desktop/IL6_cDC2_control.csv", quote = FALSE)
+write.csv(alive_day0$pop1_z, file ="/Users/jamrute/Desktop/IL6_cDC2_aliveD0.csv", quote = FALSE)
+write.csv(alive_day7$pop1_z, file ="/Users/jamrute/Desktop/IL6_cDC2_aliveD7.csv", quote = FALSE)
+write.csv(dead_day0$pop1_z, file ="/Users/jamrute/Desktop/IL6_cDC2_deadD0.csv", quote = FALSE)
+write.csv(dead_day7$pop1_z, file ="/Users/jamrute/Desktop/IL6_cDC2_deadD7.csv", quote = FALSE)
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
